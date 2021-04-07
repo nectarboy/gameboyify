@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>gameboyify</title>
+    <meta charset='utf-8'>
+    <style>
+        canvas {
+            width: 320px;
+            image-rendering: pixelated;
+            background-color: #9bbc0f;
+        }
+
+        td {
+            padding: 10px;
+            border: 1px solid black;
+        }
+
+        .slider {
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>gameboyify</h1>
+    <p>turn ur photos into gameboy art</p>
+    <div>
+    <table>
+        <td>
+            <div>
+                <canvas id='canv' width=160 height=144></canvas>
+                <!-- pallete changer here ? -->
+            </div>
+
+            <div>
+                <p>input a photo</p>
+                <input id='inp' type='file'>
+            </div>
+        </td>
+        <td>
+            <h2>settings</h2>
+
+            <div>
+                <span>contrast</span>
+                <input id='sl0' class='slider' type='range'>
+                <br><span>saturation</span>
+                <input id='sl1' class='slider' type='range'>
+                <br><span>brightness</span>
+                <input id='sl2' class='slider' type='range'>
+            </div>
+        </td>
+    </table>
+    </div>
+
+    <script>
+        const canv = document.getElementById('canv');
+        const inp = document.getElementById('inp');
+        const sl = [
+            document.getElementById('sl0'),
+            document.getElementById('sl1'),
+            document.getElementById('sl2')
+        ];
+
+        // input
+        inp.onchange = function () {
+            if (this.files && this.files[0]) {
+                var img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(img.src);  // no longer needed, free memory
+                    curr_img = img;
+                    gameboyify();
+                };
+
+                img.src = URL.createObjectURL(this.files[0]); // set src to blob url
+            }
+        };
+
+        // config
+        const pallete = [
+            {r: 0x9b, g: 0xbc, b: 0x0f},
+            {r: 0x8b, g: 0xac, b: 0x0f},
+            {r: 0x30, g: 0x62, b: 0x30},
+            {r: 0x0f, g: 0x38, b: 0x0f}
+        ];
+        const thresh = [0.3, 0.4, 0.8];
+
+        // sliders
+        var slided = false;
+
+        for (var i = 0; i < sl.length; i++) {
+            sl[i].value = thresh[i] * 100;
+        };
+
+        sl[0].oninput = function () {
+            if (slided)
+                return;
+            setTimeout(() => {
+                slided = false;
+            }, 30);
+
+            thresh[0] = sl[0].value / 100;
+            gameboyify(canv);
+
+        };
+        sl[1].oninput = function () {
+            if (slided)
+                return;
+            setTimeout(() => {
+                slided = false;
+            }, 30);
+
+            thresh[1] = sl[1].value / 100;
+            gameboyify(canv);
+        };
+        sl[2].oninput = function () {
+            if (slided)
+                return;
+            setTimeout(() => {
+                slided = false;
+            }, 30);
+
+            thresh[2] = sl[2].value / 100;
+            gameboyify(canv);
+        };
+
+        // canvas
+        const ctx = canv.getContext('2d');
+        var curr_img = null;
+
+        // image manipulation
+        function gameboyify() {
+            // create image data from img
+            var tmpCanv = document.createElement('canvas');
+            var tmpCtx = tmpCanv.getContext('2d');
+
+            tmpCtx.drawImage(curr_img,0,0,160,144);
+
+            var buff = tmpCtx.getImageData(0,0,160,144);
+
+            // here we goooo
+            imagemagic(buff);
+            ctx.putImageData(buff,0,0);
+        }
+
+        function imagemagic(buff) {
+            var data = buff.data;
+
+            for (var i = 0; i < data.length; i += 4) {
+                var total = data[i] + data[i + 1] + data[i + 2];
+                var palleteind = 0;
+
+                for (var ii = 0; ii < thresh.length; ii++) {
+                    if (total < thresh[ii]*0xff*3)
+                        palleteind++;
+                }
+
+                if (palleteind > 3 || palleteind < 0)
+                    console.log (palleteind)
+
+                data[i]     = pallete[palleteind].r;
+                data[i + 1] = pallete[palleteind].g;
+                data[i + 2] = pallete[palleteind].b;
+
+                data[i + 3] = 0xff;
+            }
+        }
+    </script>
+</body>
+</html>
